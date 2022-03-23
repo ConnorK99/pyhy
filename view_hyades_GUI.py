@@ -1,6 +1,6 @@
 """tkinter GUI to view the data output from Hyades simulations.
 
-Run with $ python view_hyades_GUI.py
+Run with the command $ python view_hyades_GUI.py
 
 """
 import os
@@ -30,7 +30,7 @@ class App:
         Saving the animations require ffmpeg installed.
 
     Example:
-        Start the script with::
+        Start the script with:
             $ python view_hyades_GUI.py
 
     """
@@ -185,9 +185,13 @@ class App:
         self.fig.canvas.draw()
 
     def save_animation(self):
-        """Save a .mp4 animation of the slider moving through its range"""
+        """Save a .mp4 animation of the slider moving through its range
+
+        Note:
+            Requires ffmpeg to save animation.
+        """
         if self.var.get() == 'Shock Velocity':
-            tkinter.messagebox.showwarning("Warning from Save Animation",
+            tkinter.messagebox.showwarning("Save Animation",
                                            'WARNING: Nothing to animate when Shock Velocity is plotted')
             return
         
@@ -227,14 +231,17 @@ class App:
         
         basename = f"{os.path.basename(self.filename)}_{var}_{suffix}"
         out_fname = basename
+
+        out_folder = os.path.dirname(os.path.normpath(self.filename.split('data/')[1]))
+        out_folder = os.path.join('data', out_folder)
         counter = 2
-        while out_fname+".mp4" in os.listdir("data/"):
+        while out_fname+".mp4" in os.listdir(out_folder):
             out_fname = basename + f"_{counter}"
             counter += 1
 
-        anim.save(f'../data/{out_fname}.mp4', dpi=200, writer=writer)
-        print('Saved', out_fname)
-        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the animation {out_fname!r}')
+        anim.save(os.path.join(out_folder, out_fname), dpi=200, writer=writer)
+        print('Saved', os.path.join(out_folder, out_fname))
+        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the animation {out_fname}.mp4 in {out_folder}')
 
     def save_plot(self):
         """Save a .png of the graph currently on screen"""
@@ -265,15 +272,18 @@ class App:
             basename = f'{os.path.basename(self.filename)}_{var}'
         else:
             basename = f'{os.path.basename(self.filename)}_{var}_{suffix}'
+
+        out_folder = os.path.dirname(os.path.normpath(self.filename.split('data/')[1]))
+        out_folder = os.path.join('data', out_folder)
         out_fname = basename
         counter = 2
-        while out_fname+".png" in os.listdir("data/"):
+        while out_fname+".png" in os.listdir(out_folder):
             out_fname = basename + f"_{counter}"
             counter += 1
-        
-        self.fig.savefig(f'../data/{out_fname}.png', dpi=200)
-        print('Saved', out_fname)
-        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the plot {out_fname!r}')
+
+        self.fig.savefig(os.path.join(out_folder, out_fname+'.png'), dpi=200)
+        print('Saved', os.path.join(out_folder, out_fname+'.png'))
+        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the plot {out_fname}.png in {out_folder}')
 
     def save_csv(self):
         """Save a .csv of the data currently on screen"""
@@ -310,21 +320,22 @@ class App:
             basename = f'{os.path.basename(self.filename)}_{var.replace(" ","")}_{index}'
             comment = f'{var} lineout of {os.path.basename(self.filename)} taken at {index}'
 
+        out_folder = os.path.dirname(os.path.normpath(self.filename.split('data/')[1]))
+        out_folder = os.path.join('data', out_folder)
         out_fname = basename
         counter = 2
-        while out_fname+".csv" in os.listdir("data/"):
+        while out_fname+'.csv' in os.listdir(out_folder):
             out_fname = basename + f"_{counter}"
             counter += 1
-
-        with open(f'../data/{out_fname}.csv', 'a') as f:
+        with open(os.path.join(out_folder, out_fname+'.csv'), 'a', newline='') as f:
             f.write(comment + '\n')
             df.to_csv(f, index=False, float_format='%.4f')
-        print('Saved', out_fname)
-        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the csv {out_fname!r}')
+        print('Saved', os.path.join(out_folder, out_fname+'.csv'))
+        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the data {out_fname}.csv in {out_folder}')
 
     def select_dir(self):
         """Function to create a HyadesOutput when a new data directory is selected"""
-        fname = filedialog.askdirectory(initialdir='../data', title='Select Hyades output')
+        fname = filedialog.askdirectory(initialdir='./data', title='Select Hyades output')
         if self.datasaur.get_visible():
             self.datasaur.set_visible(False)
         print(fname)
@@ -522,6 +533,5 @@ class App:
 if __name__ == '__main__':
     root = tkinter.Tk()
     style = ttk.Style(root)
-    # style.theme_use('xpnative')  # xpnative, clam, winnative, vista
     app = App(root)
     root.mainloop()
