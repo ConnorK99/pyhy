@@ -21,7 +21,7 @@ plt.style.use('ggplot')
 
 
 class App:
-    """tkinter application to scroll through Hyades data.
+    """tkinter application to scroll through Hyades data as a lineout
 
     Can create lineouts of common variables with Time or Lagrangian Position on x-axis.
     Has animation features, can save the plot on screen, export data on screen, or save animation
@@ -106,7 +106,7 @@ class App:
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=root)
         self.canvas.get_tk_widget().grid(row=15, column=1, columnspan=10, rowspan=10, sticky='NSEW')
-        # Configure row / column settings, fixed some spacing issues with the graph
+        # Configure row and column settings, fixes some spacing issues with the graph
         col, row = root.grid_size()
         for i in range(row):
             root.rowconfigure(i, weight=1)
@@ -117,20 +117,19 @@ class App:
         root_menu = tkinter.Menu(root)
         root.config(menu=root_menu)
         
-        # creating sub menus in the root menu
-        file_menu = tkinter.Menu(root_menu)  # it initializes a new su menu in the root menu
-        root_menu.add_cascade(label='File', menu=file_menu)  # it creates the name of the sub menu
+        # Sub menu for command to select a file or exit the program
+        file_menu = tkinter.Menu(root_menu)  # initializes a new sub menu in the root menu
+        root_menu.add_cascade(label='File', menu=file_menu)  # sets the name of the sub menu
         file_menu.add_command(label='Open file', command=self.select_dir)
-        file_menu.add_separator()  # it adds a horizontal line to separate options
+        file_menu.add_separator()  # adds a horizontal line to separate options
         file_menu.add_command(label='Exit', command=root.quit)
 
-        # creating another sub menu for saving
+        # Create another sub menu for saving data as .mp4 animations, .png pictures, or .csv for raw data
         save_menu = tkinter.Menu(root_menu)
         root_menu.add_cascade(label='Save', menu=save_menu)
         save_menu.add_command(label='Save Animation', command=self.save_animation)
         save_menu.add_command(label='Save Plot', command=self.save_plot)
         save_menu.add_command(label='Save CSV', command=self.save_csv)
-        # End Menu
         
     def animate(self, i):
         """Updates the slider index and sets line data during the animation"""
@@ -189,6 +188,7 @@ class App:
 
         Note:
             Requires ffmpeg to save animation.
+            This will try not to write over files with the same name by appending a number to the end of the filename
         """
         if self.var.get() == 'Shock Velocity':
             tkinter.messagebox.showwarning("Save Animation",
@@ -244,7 +244,11 @@ class App:
         tkinter.messagebox.showinfo("Save Message", f'Successfully saved the animation {out_fname}.mp4 in {out_folder}')
 
     def save_plot(self):
-        """Save a .png of the graph currently on screen"""
+        """Save a .png of the graph currently on screen
+
+        Note:
+            This will try not to write over files with the same name by appending a number to the end of the filename
+        """
         selection = self.var.get()
         if selection == 'Pressure':
             var = 'Pres'
@@ -286,7 +290,11 @@ class App:
         tkinter.messagebox.showinfo("Save Message", f'Successfully saved the plot {out_fname}.png in {out_folder}')
 
     def save_csv(self):
-        """Save a .csv of the data currently on screen"""
+        """Save a .csv of the data currently on screen
+
+        Note:
+            This will try not to write over files with the same name by appending a number to the end of the filename
+        """
         if self.x_mode.get() == 'Distance':
             x_title = 'Distance (um)'
             index = f'{self.hyades.time[self.ix_scale.get()]:.1f}ns'
