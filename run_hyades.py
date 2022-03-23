@@ -1,8 +1,7 @@
 """Command line interface to run multiple Hyades simulations.
 
 Example:
-    The following line would run all the .inf files in the `./data/inf` folder::
-
+    The following line would run all the .inf files in the `./data/inf` folder:
         $ python run_hyades.py
 
 """
@@ -18,8 +17,9 @@ to make the .cdf output file for every simulation, moves all files from a run
 to a folder named after the .inf.
 
 Example:
-    The following line would run all .inf files in the directory ./data/inf
+    The following line would run all .inf files in the directory ./data/inf:
         $ python run_hyades.py
+    Note the above command will ask for confirmation before starting.
 '''
 epilog = '''
                       ___      _  _      
