@@ -98,25 +98,29 @@ class InputGUI:
             elif messagebox.askyesno(title, message):
                 hyades_runner.batch_run_hyades(inf_path, final_destination, excel_variables=excel_variables)
 
-        initial_dir = os.path.join('..', 'data')
+        tv_input_dir = os.path.join('.', 'data', 'tvInputs')
 
         def select_pres_file():
-            pres_filename = filedialog.askopenfilename(initialdir=initial_dir, title='Select Pressure Profile')
+            """Function to select the pressure drive file"""
+            pres_filename = filedialog.askopenfilename(initialdir=tv_input_dir, title='Select Pressure Profile')
             self.pres_fname.set(pres_filename)
             self.pres_label_variable.set(os.path.basename(pres_filename))
 
         def select_temp_file():
-            temp_filename = filedialog.askopenfilename(initialdir=initial_dir, title='Select Temperature Profile')
+            """Function to select the temperature drive file"""
+            temp_filename = filedialog.askopenfilename(initialdir=tv_input_dir, title='Select Temperature Profile')
             self.temp_fname.set(temp_filename)
             self.temp_label_variable.set(os.path.basename(temp_filename))
 
         def select_laser_file():
-            laser_filename = filedialog.askopenfilename(initialdir=initial_dir, title='Select Laser Profile')
+            """Function to select the laser drive file"""
+            laser_filename = filedialog.askopenfilename(initialdir=tv_input_dir, title='Select Laser Profile')
             self.laser_fname.set(laser_filename)
             self.laser_label_variable.set(os.path.basename(laser_filename))
 
         def select_dir():
-            out_dir = filedialog.askdirectory(initialdir=initial_dir, title='Select .inf destination')
+            """Function to select the destination to write the .infs"""
+            out_dir = filedialog.askdirectory(initialdir=os.path.join('.', 'data'), title='Select .inf destination')
             self.out_dir.set(out_dir)
 
         # out_fname entry
@@ -157,7 +161,7 @@ class InputGUI:
         ttk.Entry(self.parent, textvariable=self.n_layers, width=7).grid(column=2, row=row, sticky='NW', pady=pad_y)
         ttk.Button(self.parent, text='Generate Layers',
                    command=self.generate_layers).grid(column=3, row=row, sticky='NWE', pady=pad_y)
-        row += 10
+        row += 10  # Buffer for the inputs to specify the Layer information
 
         # Optional X-ray probe time
         pad_y = (0, 0)
@@ -203,26 +207,6 @@ class InputGUI:
         Label(root, text='Laser Spot Diameter (mm)').grid(row=row, column=3, sticky='NE')
         ttk.Entry(root, textvariable=self.laser_spot_diameter, width=7).grid(row=row, column=4, sticky='NW')
         row += 1
-
-    def run_optimizer(self):
-        """DOES NOT WORK
-
-        Returns:
-
-        """
-        print(self.exp_file_name.get(), self.time_of_interestE.get(), self.time_of_interestS.get())
-        inf_path = 'data/inf/'
-        files = [f for f in os.listdir(inf_path) if f.endswith('_setup.inf')]
-        print(files)
-        for f in files:
-            print(pathlib.Path(f).parent.parent.parent.absolute())
-            try:
-                os.makedirs(f'../data/{f[0:-10]}')
-            except:
-                print(f'../data/{f[0:-10]} exists')
-            print(f[0:-10])
-            os.system(f'mv ..\data\inf\{f} ..\data\{f[0:-10]}\{f}')
-            os.system(f'.\hyopRunner {self.exp_file_name.get()} {self.time_of_interestS.get()} {self.time_of_interestE.get()} {f[0:-10]}')
 
     def generate_layers(self):
         """Generate the layer options inside the GUI"""
@@ -279,17 +263,20 @@ class InputGUI:
         return tv_lines
 
     def write_out_props(self):
-        """Convert the GUI properties to a Layer object then pass all the Layers to the InfWriter
-        ToDo:
-            notify the user if the name of their new inf is already being used in the pyhy/data folder
-        """
+        """Convert the GUI properties to a Layer object then pass all the Layers to the InfWriter"""
 
-        '''The user may enter invalid options. These if statements check for invalid options and notify the user'''
+        '''The user may enter invalid options. These if statements check for invalid options and notify the user.'''
         messagebox_title = 'Hyades Input File GUI'
         if not self.out_fname.get():  # Notify user if they did not enter a filename for the inf
             messagebox.showerror(messagebox_title,
                                  'Enter a unique filename for the inf.'
                                  '\nInf will not be written.')
+            return
+        if self.out_fname.get() in os.listdir('data'):  # Notify user if inf name is already in the data folder
+            messagebox.showerror(messagebox_title,
+                                 f'{self.out_fname.get()!r} already exists in pyhy/data. Try using another name or '
+                                 f'remove the old folder in pyhy/data.'
+                                 f'\nInf will not be written.')
             return
         if self.time_max.get() <= 0:  # notify user for invalid simulation time
             messagebox.showerror(messagebox_title,
@@ -324,7 +311,6 @@ class InputGUI:
                                  f'Enter a Num Mesh Points greater than 0 for {", ".join(invalid_materials)}'
                                  f'\nInf will not be written.')
             return
-
 
         layers = []
         for i, T in enumerate(self.tabs):
