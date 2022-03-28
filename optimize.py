@@ -14,6 +14,7 @@ import sys
 sys.path.append('../')
 from optimizer.hyop_class import HyadesOptimizer, ResolutionError
 from optimizer.hyop_functions import calculate_laser_pressure
+from optimizer.jacobian_class import Jacobian
 from graphics import optimizer_graphics
 
 
@@ -58,6 +59,10 @@ def run_optimizer(run_name, restart=0, debug=0):
     pressure = [float(i) for i in config.get('Setup', 'pressure').split(',')]
     if len(time) == 3 and len(pressure) != 3:  # If time is in the format: start, stop, num
         time = [i for i in np.linspace(time[0], time[1], num=int(time[2]), endpoint=True)]
+
+    assert len(time) == len(pressure), f'Found unequal number of time and pressure points in {config_filename}.' \
+                                       f'\nThere must be the same number of time and pressure points in the .cfg.'
+
     hyop = HyadesOptimizer(run_name, time, pressure,
                            delay=delay, use_shock_velocity=use_shock_velocity, debug=debug)
 
@@ -108,10 +113,12 @@ def run_optimizer(run_name, restart=0, debug=0):
         hyop.pres = new_pres
         lb, ub = [0]*len(hyop.pres), [np.inf]*len(hyop.pres)
         bounds = optimize.Bounds(lb, ub, keep_feasible=True)
+        # Replacing jacobian config parameter with my Jacobian class
         jac = config.get('Optimization', 'jac',
                          fallback=None)
         if jac == 'None':
             jac = None
+        # jac = Jacobian(run_name, n=resolution)
         try:
             sol = optimize.minimize(hyop.run, hyop.pres,
                                     method=config.get('Optimization', 'method'),
@@ -123,8 +130,9 @@ def run_optimizer(run_name, restart=0, debug=0):
                                              'eps': config.getfloat('Optimization', 'eps')
                                              }
                                     )
-        except ResolutionError:
+        except ResolutionError as e:
             print("INCREASING RESOLUTION")
+            print(str(e))
 
     out_fname = os.path.join(hyop.path, f'{hyop.run_name}_solution.txt')
     with open(out_fname, 'w') as f:
