@@ -259,9 +259,6 @@ def update_surface(children):
     output = np.array(data['output'])
     var = data['var']
     layers = data['layers']
-    print('LAYERS', layers)
-    for layer in layers:
-        print('LAYER:', layer, 'VALUES:', layers[layer])
 
     if var == 'Te':
         label, units = 'Temperature', '(K)'

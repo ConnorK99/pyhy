@@ -1,6 +1,6 @@
 """tkinter GUI to view the data output from Hyades simulations.
 
-Run with $ python view_hyades_GUI.py
+Run with the command $ python view_hyades_GUI.py
 
 """
 import os
@@ -21,7 +21,7 @@ plt.style.use('ggplot')
 
 
 class App:
-    """tkinter application to scroll through Hyades data.
+    """tkinter application to scroll through Hyades data as a lineout
 
     Can create lineouts of common variables with Time or Lagrangian Position on x-axis.
     Has animation features, can save the plot on screen, export data on screen, or save animation
@@ -30,7 +30,7 @@ class App:
         Saving the animations require ffmpeg installed.
 
     Example:
-        Start the script with::
+        Start the script with:
             $ python view_hyades_GUI.py
 
     """
@@ -106,7 +106,7 @@ class App:
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=root)
         self.canvas.get_tk_widget().grid(row=15, column=1, columnspan=10, rowspan=10, sticky='NSEW')
-        # Configure row / column settings, fixed some spacing issues with the graph
+        # Configure row and column settings, fixes some spacing issues with the graph
         col, row = root.grid_size()
         for i in range(row):
             root.rowconfigure(i, weight=1)
@@ -117,20 +117,19 @@ class App:
         root_menu = tkinter.Menu(root)
         root.config(menu=root_menu)
         
-        # creating sub menus in the root menu
-        file_menu = tkinter.Menu(root_menu)  # it initializes a new su menu in the root menu
-        root_menu.add_cascade(label='File', menu=file_menu)  # it creates the name of the sub menu
+        # Sub menu for command to select a file or exit the program
+        file_menu = tkinter.Menu(root_menu)  # initializes a new sub menu in the root menu
+        root_menu.add_cascade(label='File', menu=file_menu)  # sets the name of the sub menu
         file_menu.add_command(label='Open file', command=self.select_dir)
-        file_menu.add_separator()  # it adds a horizontal line to separate options
+        file_menu.add_separator()  # adds a horizontal line to separate options
         file_menu.add_command(label='Exit', command=root.quit)
 
-        # creating another sub menu for saving
+        # Create another sub menu for saving data as .mp4 animations, .png pictures, or .csv for raw data
         save_menu = tkinter.Menu(root_menu)
         root_menu.add_cascade(label='Save', menu=save_menu)
         save_menu.add_command(label='Save Animation', command=self.save_animation)
         save_menu.add_command(label='Save Plot', command=self.save_plot)
         save_menu.add_command(label='Save CSV', command=self.save_csv)
-        # End Menu
         
     def animate(self, i):
         """Updates the slider index and sets line data during the animation"""
@@ -185,9 +184,14 @@ class App:
         self.fig.canvas.draw()
 
     def save_animation(self):
-        """Save a .mp4 animation of the slider moving through its range"""
+        """Save a .mp4 animation of the slider moving through its range
+
+        Note:
+            Requires ffmpeg to save animation.
+            This will try not to write over files with the same name by appending a number to the end of the filename
+        """
         if self.var.get() == 'Shock Velocity':
-            tkinter.messagebox.showwarning("Warning from Save Animation",
+            tkinter.messagebox.showwarning("Save Animation",
                                            'WARNING: Nothing to animate when Shock Velocity is plotted')
             return
         
@@ -227,17 +231,24 @@ class App:
         
         basename = f"{os.path.basename(self.filename)}_{var}_{suffix}"
         out_fname = basename
+
+        out_folder = os.path.dirname(os.path.normpath(self.filename.split('data/')[1]))
+        out_folder = os.path.join('data', out_folder)
         counter = 2
-        while out_fname+".mp4" in os.listdir("data/"):
+        while out_fname+".mp4" in os.listdir(out_folder):
             out_fname = basename + f"_{counter}"
             counter += 1
 
-        anim.save(f'../data/{out_fname}.mp4', dpi=200, writer=writer)
-        print('Saved', out_fname)
-        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the animation {out_fname!r}')
+        anim.save(os.path.join(out_folder, out_fname), dpi=200, writer=writer)
+        print('Saved', os.path.join(out_folder, out_fname))
+        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the animation {out_fname}.mp4 in {out_folder}')
 
     def save_plot(self):
-        """Save a .png of the graph currently on screen"""
+        """Save a .png of the graph currently on screen
+
+        Note:
+            This will try not to write over files with the same name by appending a number to the end of the filename
+        """
         selection = self.var.get()
         if selection == 'Pressure':
             var = 'Pres'
@@ -265,18 +276,25 @@ class App:
             basename = f'{os.path.basename(self.filename)}_{var}'
         else:
             basename = f'{os.path.basename(self.filename)}_{var}_{suffix}'
+
+        out_folder = os.path.dirname(os.path.normpath(self.filename.split('data/')[1]))
+        out_folder = os.path.join('data', out_folder)
         out_fname = basename
         counter = 2
-        while out_fname+".png" in os.listdir("data/"):
+        while out_fname+".png" in os.listdir(out_folder):
             out_fname = basename + f"_{counter}"
             counter += 1
-        
-        self.fig.savefig(f'../data/{out_fname}.png', dpi=200)
-        print('Saved', out_fname)
-        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the plot {out_fname!r}')
+
+        self.fig.savefig(os.path.join(out_folder, out_fname+'.png'), dpi=200)
+        print('Saved', os.path.join(out_folder, out_fname+'.png'))
+        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the plot {out_fname}.png in {out_folder}')
 
     def save_csv(self):
-        """Save a .csv of the data currently on screen"""
+        """Save a .csv of the data currently on screen
+
+        Note:
+            This will try not to write over files with the same name by appending a number to the end of the filename
+        """
         if self.x_mode.get() == 'Distance':
             x_title = 'Distance (um)'
             index = f'{self.hyades.time[self.ix_scale.get()]:.1f}ns'
@@ -310,21 +328,22 @@ class App:
             basename = f'{os.path.basename(self.filename)}_{var.replace(" ","")}_{index}'
             comment = f'{var} lineout of {os.path.basename(self.filename)} taken at {index}'
 
+        out_folder = os.path.dirname(os.path.normpath(self.filename.split('data/')[1]))
+        out_folder = os.path.join('data', out_folder)
         out_fname = basename
         counter = 2
-        while out_fname+".csv" in os.listdir("data/"):
+        while out_fname+'.csv' in os.listdir(out_folder):
             out_fname = basename + f"_{counter}"
             counter += 1
-
-        with open(f'../data/{out_fname}.csv', 'a') as f:
+        with open(os.path.join(out_folder, out_fname+'.csv'), 'a', newline='') as f:
             f.write(comment + '\n')
             df.to_csv(f, index=False, float_format='%.4f')
-        print('Saved', out_fname)
-        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the csv {out_fname!r}')
+        print('Saved', os.path.join(out_folder, out_fname+'.csv'))
+        tkinter.messagebox.showinfo("Save Message", f'Successfully saved the data {out_fname}.csv in {out_folder}')
 
     def select_dir(self):
         """Function to create a HyadesOutput when a new data directory is selected"""
-        fname = filedialog.askdirectory(initialdir='../data', title='Select Hyades output')
+        fname = filedialog.askdirectory(initialdir='./data', title='Select Hyades output')
         if self.datasaur.get_visible():
             self.datasaur.set_visible(False)
         print(fname)
@@ -522,6 +541,5 @@ class App:
 if __name__ == '__main__':
     root = tkinter.Tk()
     style = ttk.Style(root)
-    # style.theme_use('xpnative')  # xpnative, clam, winnative, vista
     app = App(root)
     root.mainloop()

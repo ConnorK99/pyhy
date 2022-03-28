@@ -21,7 +21,7 @@ def is_float(string):
 
 
 def save_figure(filename, dpi=200):
-    """Ask user if okay to overwrite file before saving
+    """Saves current figure as filename. Asks user if okay to overwrite if filename already exists.
 
     Args:
         filename (string): name of the file to be saved
@@ -96,7 +96,7 @@ parser.add_argument('-xth', '--xt_histogram', nargs='+',
                          '\nClick and drag the XT diagram to create a histogram.'
                          '\nAdd a number to the command to set the minimum pressure threshold.')
 parser.add_argument('-l', '--lineout', nargs='+',
-                    help='Plot lineouts of a variable of interest at multiple times')
+                    help='Plot lineouts of a variable of interest at multiple times.')
 parser.add_argument('-t', '--target', action='store_true',
                     help='Toggle to plot the target design. Works best on targets with wide layers.')
 parser.add_argument('-k', '--shock', nargs='*',

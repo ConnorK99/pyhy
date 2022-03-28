@@ -21,7 +21,7 @@ from graphics import optimizer_graphics
 def run_optimizer(run_name, restart=0, debug=0):
     """Starts an optimization to fit Hyades simulated Velocity to experimental VISAR.
 
-    This function is mostly formatting the variables specified in the .cfg to work with the Hyades Optimizer class.
+    This function is mostly formats the variables specified in the .cfg to work with the Hyades Optimizer class.
     It also controls the resolution of the optimization using a for loop.
 
     Note:
@@ -31,9 +31,9 @@ def run_optimizer(run_name, restart=0, debug=0):
         The bounds of the optimization solution are always set to  >= 0.
 
     Args:
-        run_name (string):
-        restart (int, optional):
-        debug (int, optional):
+        run_name (string): Name of the optimization folder
+        restart (int, optional): Number of points on the pressure drive
+        debug (int, optional): Flag to print debugging information
 
     Returns:
         sol (scipy.optimize.OptimizeResult): The solution to the optimization

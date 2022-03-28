@@ -12,7 +12,7 @@ Little to no Python knowledge is required.
 
 Developed by Connor Krill et al. under the Wicks Lab at Johns Hopkins University.  
 First Published: December 2021  
-Last Updated: February 2022
+Last Updated: March 2022
 
 ___
 # Requirements & Set Up
@@ -22,7 +22,7 @@ To install all packages at once, navigate to the PyHy repository in terminal and
 `pip install -r requirements.txt`. This will attempt to install compatible versions of all required packages if they are not 
 already present on your machine.
 
-This repository should work on all operating systems and was tested on a MacOS installation of Hyades.
+This repository should work on all operating systems and was tested on a MacOS and Windows installation of Hyades.
 
 ___
 # GUIs for:
