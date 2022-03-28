@@ -1,6 +1,6 @@
-Cu DCS, 
+Square pressure drive of 200 GPa for 5 ns
 time (ns), Pressure (Gpa)
 0.0, 0.0
-0.1, 40
-5.0, 40
+0.1, 200
+5.0, 200
 5.1, 0.0
