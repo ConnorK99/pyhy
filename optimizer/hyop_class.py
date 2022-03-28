@@ -94,7 +94,7 @@ class HyadesOptimizer:
         if (not time_of_interest) or (time_of_interest == 'None'):
             time_of_interest = (min(velocity_time), max(velocity_time))
 
-        self.exp_time = np.linspace(time_of_interest[0], time_of_interest[1], num=50)
+        self.exp_time = np.linspace(time_of_interest[0], time_of_interest[1], num=100)
         self.exp_data = f_velocity(self.exp_time)
         if self.debug >= 1:
             print(f'DEBUG: Experimental Data\n'
@@ -324,9 +324,10 @@ class HyadesOptimizer:
                         os.remove(os.path.join(self.path, directory, file))
                 try:
                     os.rmdir(os.path.join(self.path, directory))
-                except:
+                except OSError as e:
                     print(f'Failed to delete the directory {directory} - Check remaining contents:')
                     print(os.listdir(os.path.join(self.path, directory)))
+                    raise e
 
     def run(self, var_vec):
         """The function called by the SciPy optimization routine.
