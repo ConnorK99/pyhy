@@ -66,6 +66,10 @@ def otf2cdf(otf_name, quiet=False):
     if quiet:
         if os.path.exists(txt_file):  # Delete the terminal output if it exists
             os.remove(txt_file)
+    '''On windows, Hyades creates a file called SCRACTHX1 that just has a tab and a "1" in it.
+    I have no idea why Hyades does this but leaving the file in there can crash the optimizer.'''
+    if os.path.exists('SCRATCHX1'):
+        os.remove('SCRATCHX1')
 
     run_name = os.path.basename(os.path.splitext(otf_name)[0])
     found = run_name + '.cdf' in os.listdir()
