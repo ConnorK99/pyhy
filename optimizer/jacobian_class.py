@@ -9,40 +9,67 @@ from tools.hyades_runner import batch_run_hyades
 from tools.hyades_reader import HyadesOutput, ShockVelocity
 
 
-def progressBar(iterable, prefix='', suffix='', decimals=1, length=100, fill='█'):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iterable    - Required  : iterable object (Iterable)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
+def progress_bar(iterable, prefix='', suffix='', decimals=1, length=100, fill='█'):
+    """Call in a loop to create terminal progress bar
+
+    Note:
+        This function was written by https://stackoverflow.com/users/2206251/greenstick as a part of their answer posted
+        on Stack Overflow at https://stackoverflow.com/a/34325723.
+
+    Args:
+        iterable (iterable):  iterable object
+        prefix (string, optional):  prefix string
+        suffix (string, optional):  suffix string
+        decimals (int, optional): Positive number of decimals in percent complete
+        length (int, optional): character length of bar
+        fill (string, optional): bar fill character
+
+
     """
     total = len(iterable)
 
-    def printProgressBar(iteration):
+    def print_progress_bar(iteration):
         """Progress Bar Printing Function"""
         percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-        filledLength = int(length * iteration // total)
-        bar = fill * filledLength + '-' * (length - filledLength)
+        filled_length = int(length * iteration // total)
+        bar = fill * filled_length + '-' * (length - filled_length)
         sys.stdout.write(f'\r\t{prefix} |{bar}| {percent}% {suffix}')
         sys.stdout.flush()
     # Initial Call
-    printProgressBar(0)
+    print_progress_bar(0)
     # Update Progress Bar
     for i, item in enumerate(iterable):
         yield item
-        printProgressBar(i + 1)
+        print_progress_bar(i + 1)
     # Print New Line on Complete
     print()
 
 
 class Jacobian:
+    """Class used to calculate the Jacobian during a Hyades Optimization.
+
+    Note:
+        This class can be passed to scipy.optimize.minimize via the 'jac' input.
+        This class uses the same .cfg file as the HyadesOptimizer class.
+
+    The Jacobian is the vector of all  partial derivatives at a given pressure. The partial derivative of the i-th
+    control point on the pressure drive is calculated by adding a delta to the i-th pressure point, running Hyades
+    with the modified pressure, and calculating the residual between the resulting velocity and the VISAR data.
+
+    For example, if the initial pressure drive is [0, 25, 50, 100, 0] and this classes uses the default delta=10, then
+    the pressure drive used to calculate the first entry in the jacobian vector would be [10, 25, 50, 100, 0].
+    The pressure drive [10, 25, 50, 100, 0] would be run in Hyades and the resulting velocity would be compared to the
+    experimental VISAR data to compute a residual. This residual is stored as the first entry of the jacobian
+    and the class would move onto the second partial derivative using the pressure drive [0, 35, 50, 100, 0].
+    """
 
     def __init__(self, run_name, n=0):
-        """Set up run_name, experimental data, optimization_json, and config file"""
+        """Set up run_name, experimental data, optimization_json, and config file
+
+        Args:
+            run_name (string): Name of the folder containing run_name_setup.inf and run_name.cfg
+            n (int, optional): Number of points for time
+        """
         self.run_name = run_name
         self.inf_directory = os.path.join('.', 'data', 'inf')
         self.path = os.path.join('.', 'data', self.run_name)
@@ -80,7 +107,7 @@ class Jacobian:
                 raise ValueError(f'Found NaN (Not-a-Number) in {self.exp_file} and could not easily remove them.\n'
                                  f'This might be caused by blank rows or invalid numbers in {self.exp_file}')
         '''
-        PyHy Optimizer interpolates experimental time onto 50 evenly space points.
+        PyHy Optimizer interpolates experimental time onto 100 evenly spaced points.
         This timing is also used for the residual calculation.
         '''
         f = interpolate.interp1d(experimental_time, experimental_velocity)
@@ -88,9 +115,17 @@ class Jacobian:
         self.experimental_velocity = f(self.experimental_time)
 
     def calculate_jacobian(self, pressure, delta=10):
-        """Returns the partial derivative in each dimension using Hyades simulations"""
+        """Returns the partial derivative in each dimension using Hyades simulations
+
+        Args:
+            pressure (numpy.array): An array of the pressure drive in GPa
+            delta (float, optional): Pressure in GPa added to each point for the derivative calculation
+
+        Returns:
+            partial_derivatives (list): partial derivatives of the residual with respect to the pressure drive
+        """
         partial_derivatives = []
-        for i, p in enumerate(progressBar(pressure, prefix='Jacobian:', suffix='Calculated', length=40)):
+        for i, p in enumerate(progress_bar(pressure, prefix='Jacobian:', suffix='Calculated', length=40)):
             new_pressure = copy.deepcopy(pressure)
             new_pressure[i] += delta
             inf_name = self.write_inf(i, new_pressure)
@@ -99,13 +134,13 @@ class Jacobian:
             partial_derivatives.append(self.calculate_residual(inf_name))
 
             # Remove Hyades run to save space
-            ith_jacobian= f'{self.run_name}_jacobian{i}'
+            ith_jacobian = f'{self.run_name}_jacobian{i}'
             for file_extension in ('.inf', '.otf', '.ppf', '.tmf', '.cdf'):
                 filename = os.path.join(self.path, ith_jacobian, ith_jacobian + file_extension)
                 if os.path.exists(filename):
                     os.remove(filename)
 
-            try:
+            try:  # Attempt to remove the directory created for this Hyades run
                 os.rmdir(os.path.join(self.path, ith_jacobian))
             except OSError as e:
                 print(f'Failed to delete the directory {ith_jacobian} - Check remaining contents:')
@@ -118,8 +153,8 @@ class Jacobian:
         """Write an inf for each point in pressure
 
         Args:
-            i:
-            pressure:
+            i (int): Index of the pressure point being changed
+            pressure (iterable): List of pressure points in GPa
 
         Returns:
             inf_names (list): the names of each inf written
@@ -151,7 +186,7 @@ class Jacobian:
             Currently this is not written for shock velocities
 
         Args:
-            inf_name:
+            inf_name (string): Name of the Hyades run to compare to experiment
 
         Returns:
             residual (numpy array): An array of the partial derivative in each dimension
