@@ -18,9 +18,11 @@ class HyadesOutput:
                                         | Zone_1 | Zone_2 | Zone 3 |
                                       mesh_1   mesh_2   mesh_3   mesh_4
         Which means there is always one more mesh point than there are zones.
-        Some variables, such as Particle Velocity, place Lagrangian coordinates at Mesh points.
+        Mesh points are singular points with no volume or mass, whereas Zones have constant mass determined by the
+        material and initial width of the Zone. The width of a Zone, and therefore its volume, may change during a run.
+        Some variables, such as Particle Velocity and Position, place Lagrangian coordinates at Mesh points.
         Other variables, such as Pressure, Density, and Temperature, place Lagrangian coordinates in Zones.
-        Zone coordinates are computed as the average of their left and right Mesh points.
+        Zone positions are computed as the average of their left and right Mesh points.
 
     Attributes:
         filename (string): Name used to initialize
