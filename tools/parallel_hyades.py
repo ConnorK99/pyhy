@@ -1,16 +1,12 @@
-"""An attempt to run Hyades simulations in parallel. Does **not** neatly format the output like hyades_runner.py
-
-TODO:
-    - Remove terminal displays from the hyades commands
-"""
-import multiprocessing
+"""An attempt to run Hyades simulations in parallel. Does **not** neatly format the output like hyades_runner.py"""
 import os
 import time
+import multiprocessing
 
 
 def run_hyades(inf):
     """A simple function to run Hyades in parallel for several inf files"""
-    command = f'hyades {inf}'
+    command = f'hyades {inf} > {inf}_terminal_output.txt'
     with open('parallel_log.txt', 'a') as f:
         f.write(f'Starting {command}\n')
     start = time.time()
@@ -37,6 +33,7 @@ if __name__ == '__main__':
     process_pool.map(run_hyades, inf_files)
     process_pool.close()
     end_time = time.time()
+    # End parallel processing
     os.chdir(old_dir)
     with open('parallel_log.txt', 'a') as f:
         f.write(f'Entire script took {end_time - start_time:.4f} seconds.')
