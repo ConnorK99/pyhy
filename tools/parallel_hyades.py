@@ -27,6 +27,9 @@ if __name__ == '__main__':
         f.write(f'Logging for parallel_log.py\n')
         f.write(f'Running {len(inf_files)} Hyades simulations in parallel.\n')
         f.write(f'inf files are: {", ".join(inf_files)}\n')
+    old_dir = os.getcwd()
+    os.chdir(path)
+    # Begin Parallel processing
     num_processes = len(inf_files)
     start_time = time.time()
     process_pool = multiprocessing.Pool(processes=num_processes)
@@ -34,5 +37,6 @@ if __name__ == '__main__':
     process_pool.map(run_hyades, inf_files)
     process_pool.close()
     end_time = time.time()
+    os.chdir(old_dir)
     with open('parallel_log.txt', 'a') as f:
         f.write(f'Entire script took {end_time - start_time:.4f} seconds.')
