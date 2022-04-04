@@ -46,11 +46,14 @@ def xt_diagram_with_histogram(filename, variable, compression_threshold=1):
         if compression_threshold > 0:  # ignores output below a compression_threshold pressure in GPa
 
             if hyades.data_dimensions[1] == 'NumMeshs':
-                # FIXME: figure out how to make this work with particle velocity
-                error_message = 'Due to indexing issues, this feature does not work for variables with NumMeshs dimensions.' \
-                                '\nThis means it does not work for Particle Velocity (U) but should work for Particle Velocity (UCM).' \
-                                '\nThis feature works for Pres, Rho, and Te/Ti/Tr.'
-                raise ValueError(error_message)
+                '''
+                Since we use Pressure, which is zone-indexed, to mask selected_output we must convert mesh-indexed 
+                arrays into zone-indexed arrays so they have the same size.
+                See the documentation for the HyadesOutput class found under pyhy/tools/hyades_reader.py for more
+                information about Hyades Mesh and Zone indexing.
+                '''
+                zone_indexed_output = (hyades.output[:, 1:] + hyades.output[:, :-1]) / 2
+                selected_output = zone_indexed_output[t_min_index:t_max_index, x_min_index:x_max_index]
             hyades_pressure = HyadesOutput(filename, 'Pres')
             selected_pressure = hyades_pressure.output[t_min_index:t_max_index, x_min_index:x_max_index]
             mask = selected_pressure >= compression_threshold
@@ -68,15 +71,17 @@ def xt_diagram_with_histogram(filename, variable, compression_threshold=1):
         else:
             axes[1].hist(selected_output.flatten(), bins=bins,
                          fc='tab:orange', ec=None)
-            # Add vertical line at average
+            # Add vertical line at the mean
             axes[1].axvline(np.mean(selected_output), color='black', linestyle='solid',
                             label=f'Mean: {np.mean(selected_output):.2f} {hyades.units}')
             # Add shaded region indicating middle 50 % of histogram
+            old_ylim = axes[1].get_ylim()
             p25 = np.percentile(selected_output, 25)
             p75 = np.percentile(selected_output, 75)
             x = (p25, p25, p75, p75)
             y = (axes[1].get_ylim()[0], axes[1].get_ylim()[1], axes[1].get_ylim()[1], axes[1].get_ylim()[0])
             axes[1].fill(x, y, label='Middle 50%', color='tab:gray', alpha=0.4)
+            axes[1].set_ylim(old_ylim)
             # Format axis
             title = f'Histogram over {x_min:.1f}-{x_max:.1f} um and {closest_t_min:.1f}-{closest_t_max:.1f} ns'
             axes[1].set_title(title, fontsize='medium')
