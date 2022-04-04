@@ -2,9 +2,6 @@
 Uses the open source Plotly package to present interactive plots of hyades data
 served in a web page viewed from a web browser
 
-Todo:
-    - Update existing references to material properties to the new HyadesOutput Layer dictionaries
-
 """
 import os
 import sys
