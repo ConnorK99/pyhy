@@ -1,7 +1,7 @@
 """Functions for the HyadesOptimizer class.
 
 use_laser_power and restart_from are both used during the setup of an optimization, not during.
-plot_xray_pressure is a function to handle some of the graphics during an optimization.
+plot_xray_pressure is a function to handle some graphics during an optimization.
 
 """
 import os
