@@ -103,7 +103,6 @@ class LayerTab:
                         variable=self.is_material_of_interest).grid(column=1, row=self.row, sticky='NW')
         ttk.Label(self.parent, text='Set one Material of Interest if optimizing').grid(column=2, columnspan=2,
                                                                                        row=self.row, stick='NW')
-
         self.row += 1
         
         # Optionally set one material as shock material of interest using binary 0/1 for False/True
@@ -125,7 +124,6 @@ class LayerTab:
         ttk.Label(self.parent, text='Thermal Multiplier ').grid(row=self.row, column=3, sticky='NE')
         ttk.Entry(self.parent, textvariable=self.thermal_model_multiplier,
                   width=7).grid(column=4, row=self.row, sticky='NW')
-
         self.row += 1
 
         self.thermal_conductivity.set("Default to Model")
@@ -148,7 +146,6 @@ class LayerTab:
         ttk.Label(self.parent, text='Shear Modulus (GPa) ').grid(column=3, row=self.row, sticky='NE')
         ttk.Entry(self.parent, textvariable=self.shear_modulus,
                   width=7).grid(column=4, row=self.row, sticky='NW')
-
         self.row += 1
 
         # Drop down menu for yield model
@@ -165,7 +162,6 @@ class LayerTab:
                   width=7).grid(column=4, row=self.row, sticky='NW')
 
         self.row += 1
-        # Not adding in the Spall Model as Ray said he never had it working well in Hyades
 
 
 class Layer:
@@ -384,8 +380,11 @@ class InfWriter:
         return width_0 * (increment ** zone_index)
 
     def calculate_increments(self, layers):
-        """As of October 12, 2021 this function fails miserably for simulation setups with thin epoxy layers.
-        Compute accurate increments so the mass difference at layer interfaces is less than 10%
+        """An attempt to calculate increments more simply than the calc_increment function
+
+        Note:
+            As of October 12, 2021 this function fails miserably for simulation setups with thin epoxy layers.
+            Compute accurate increments so the mass difference at layer interfaces is less than 10%
 
         Args:
             layers (list): A list of Layer objects
@@ -404,7 +403,7 @@ class InfWriter:
             left_zone_width = self.calculate_zone_width(left_layer,
                                                         left_layer.n_mesh - 1,
                                                         output[i - 1])
-            left_zone_mass = left_layer.density * left_zone_width * 1e-4
+            left_zone_mass = left_layer.density * left_zone_width * 1e-4  # 1e-4 converts microns to centimeters
 
             # Compute the right side mass for each increment between 0.9 and 1.1
             increments = np.arange(0.9, 1.1, step=0.001)
@@ -413,8 +412,7 @@ class InfWriter:
                                           for incr in increments])
             right_zone_masses = right_layer.density * right_zone_widths * 1e-4
 
-            # Get the smallest mass change across the interface
-            mass_difference = abs(right_zone_masses - left_zone_mass)
+            mass_difference = abs(right_zone_masses - left_zone_mass)  # Get the smallest mass change across interface
             k = np.argmin(mass_difference)  # Index of the smallest element in mass_difference
             increment = increments[k]
             right_zone_mass = right_zone_masses[k]
@@ -432,11 +430,16 @@ class InfWriter:
         return output
 
     def calc_increments(self, layers, FZM_match_density=False):
-        """Calculate the increment powers for all of the layers"""
+        """Calculate the increment powers for all layers
+
+        Note:
+            This function was written in the summer of 2018 based on a formula from an Excel sheet used by
+            Ray Smith and June Wicks. I tried to design a simpler version, but it fails miserably for thin layers.
+        """
         n_mesh = [L.n_mesh for L in layers]
         thickness = [L.thickness * 1e-6 for L in layers]
         density = [L.density for L in layers]
-        increments = [1.0 for i in range(len(layers))]  # lists are ugly but numpy caused issues
+        increments = [1.0 for i in range(len(layers))]
         increment_range = np.arange(0.90, 1.10, step=0.001)
 
         if FZM_match_density:

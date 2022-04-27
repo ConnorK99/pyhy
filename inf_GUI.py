@@ -272,13 +272,8 @@ class InputGUI:
                                  'Enter a unique filename for the inf.'
                                  '\nInf will not be written.')
             return
-        if self.out_fname.get() in os.listdir('data'):  # Notify user if inf name is already in the data folder
-            messagebox.showerror(messagebox_title,
-                                 f'{self.out_fname.get()!r} already exists in pyhy/data. Try using another name or '
-                                 f'remove the old folder in pyhy/data.'
-                                 f'\nInf will not be written.')
-            return
-        if self.time_max.get() <= 0:  # notify user for invalid simulation time
+
+        if self.time_max.get() <= 0:  # Notify user for invalid simulation time
             messagebox.showerror(messagebox_title,
                                  'Simulation Time (ns) must be greater than zero.'
                                  '\nInf will not be written.')
@@ -300,18 +295,42 @@ class InputGUI:
                                  f'\nInf will not be written.')
             return
         if any([tab.thickness.get() <= 0 for tab in self.tabs]):  # Notify user for invalid thickness
-            invalid_materials = [tab.material.get() for tab in self.tabs if tab.thickness.get() <= 0]
+            invalid_materials = [f'Layer {i+1}' for i, tab in enumerate(self.tabs) if tab.thickness.get() <= 0]
+            # invalid_materials = [tab.material.get() for tab in self.tabs if tab.thickness.get() <= 0]
             messagebox.showerror('Hyades Input File GUI',
                                  f'Enter a thickness greater than 0 for {", ".join(invalid_materials)}'
                                  f'\nInf will not be written.')
             return
         if any([tab.n_mesh.get() <= 0 for tab in self.tabs]):  # Notify user for invalid mesh count
-            invalid_materials = [tab.material.get() for tab in self.tabs if tab.n_mesh.get() <= 0]
+            invalid_materials = [f'Layer {i+1}' for i, tab in enumerate(self.tabs) if tab.n_mesh.get() <= 0]
+            # invalid_materials = [tab.material.get() for tab in self.tabs if tab.n_mesh.get() <= 0]
             messagebox.showerror('Hyades Input File GUI',
                                  f'Enter a Num Mesh Points greater than 0 for {", ".join(invalid_materials)}'
                                  f'\nInf will not be written.')
             return
-
+        out_fname_without_extension = os.path.splitext(self.out_fname.get())[0]
+        inf_files_without_extensions = [os.path.splitext(f)[0] for f in os.listdir(os.path.join('data', 'inf'))]
+        if out_fname_without_extension in os.listdir('data'):  # Notify user if inf name is already in pyhy/data
+            messagebox.showerror(messagebox_title,
+                                 f'{self.out_fname.get()!r} was previously used as an inf name. '
+                                 f'Try using another name or remove the old folder in pyhy/data.'
+                                 f'\nInf will not be written.')
+            return
+        if out_fname_without_extension in inf_files_without_extensions:  # Notify user if inf name already in data/inf
+            response = messagebox.askyesno(messagebox_title,
+                                           f'{self.out_fname.get()!r} already exists in pyhy/data/inf.'
+                                           f'\nDo you want to replace the old inf with the current GUI settings?')
+            if response:  # If user clicks yes
+                messagebox.showinfo(messagebox_title,
+                                    f'The current GUI settings will be written to {self.out_fname.get()}.inf.'
+                                    f'\nThe old file with the same name will be overwritten.')
+                # No return statement as this case continues onto further valid input checks
+            else:  # If user clicks no
+                messagebox.showinfo(messagebox_title,
+                                    f'The current GUI settings were not written to an inf.'
+                                    f'\nTry another name or remove the old file in pyhy/data/inf.')
+                return  # exits write_out_props and does NOT write inf
+        # End checks for valid user input
         layers = []
         for i, T in enumerate(self.tabs):
             prop_dict = {}  # scraps all the properties out of GUI
