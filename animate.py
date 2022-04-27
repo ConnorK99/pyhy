@@ -4,9 +4,9 @@ Note:
     Save feature requires ffmpeg installed.
     Oct 6, 2021 All three animations and the save feature work on the lab iMac
     quiet broke things somehow
-
 """
 import os
+import json
 import argparse
 import matplotlib.pyplot as plt
 from graphics.animated_eulerian import eulerian_animation
@@ -71,8 +71,20 @@ parser.add_argument('-q', '--quiet', action='store_true',
 args = parser.parse_args()
 # End parser
 
-abs_path = os.path.join('./data/', os.path.splitext(args.filename)[0])
-base_save_filename = os.path.join('./data', os.path.splitext(args.filename)[0], os.path.splitext(args.filename)[0])
+abs_path = os.path.join('.', 'data', os.path.splitext(args.filename)[0])
+
+optimization_filename = f'{args.filename}_optimization.json'
+if optimization_filename in os.listdir(abs_path):  # If this run is an optimization, find the best iteration
+    with open(os.path.join(abs_path, optimization_filename)) as f:
+        json_data = json.load(f)
+    best_iteration = json_data['best']['number']
+    best_filename = f'{args.filename}_{best_iteration}'
+
+    abs_path = os.path.join(abs_path, best_filename)
+    base_save_filename = os.path.join('.', 'data', args.filename, best_filename)
+else:
+    base_save_filename = os.path.join('.', 'data', os.path.splitext(args.filename)[0], os.path.splitext(args.filename)[0])
+
 coordinate_system = args.coordinate or 'Lagrangian'
 if coordinate_system == 'e':
     coordinate_system = 'Eulerian'
@@ -85,7 +97,7 @@ if args.eulerian:
         save_filename = f'{base_save_filename} {args.eulerian} eulerian.mp4'
         print(f'Saving {save_filename}...')
         animation.save(save_filename, fps=args.save)
-        print('Saved.')
+        print('Saved')
 
 if args.histogram:
     animation = histogram_animation(abs_path, args.histogram)
