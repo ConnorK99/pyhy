@@ -5,6 +5,7 @@ Notes:
 
 """
 import os
+import json
 import argparse
 import matplotlib.pyplot as plt
 from graphics import static_graphics
@@ -118,7 +119,16 @@ args = parser.parse_args()
 # End parser
 
 abs_path = './data/' + os.path.splitext(args.filename)[0]
-base_out_filename = os.path.join('./data/', os.path.splitext(args.filename)[0], os.path.splitext(args.filename)[0])
+if f'{args.filename}_optimization.json' in os.listdir(abs_path):  # If this is an optimization, get the best iteration
+    with open(os.path.join(abs_path, f'{args.filename}_optimization.json')) as f:
+        json_data = json.load(f)
+    best_iteration = json_data['best']['number']
+    best_filename = f'{args.filename}_{best_iteration}'
+
+    abs_path = os.path.join(abs_path, best_filename)
+    base_save_filename = os.path.join('.', 'data', args.filename, best_filename)
+else:
+    base_save_filename = os.path.join('.', 'data', args.filename, args.filename)
 
 coordinate_system = args.coordinate or 'Lagrangian'
 if coordinate_system == 'e':
@@ -137,9 +147,8 @@ if args.xt:
         if args.title:
             ax.set_title(' '.join(args.title))
         if args.save:
-            out_fname = f'{base_out_filename} {var} {coordinate_system} XT.png'
+            out_fname = f'{base_save_filename} {var} {coordinate_system} XT.png'
             save_figure(out_fname)
-            # plt.savefig(out_fname, dpi=200)
 
 if args.xt_histogram:
     '''XT diagram with histograms work very similarly to regular XT diagrams.
@@ -161,7 +170,7 @@ if args.xt_histogram:
     if args.title:
         ax.set_title(' '.join(args.title))
     if args.save:
-        out_fname = f'{base_out_filename} {var} XT histogram.png'
+        out_fname = f'{base_save_filename} {var} XT histogram.png'
         plt.savefig(out_fname, dpi=200)
 
 if args.lineout:
@@ -188,7 +197,7 @@ if args.lineout:
     if args.title:
         ax.set_title(' '.join(args.title))
     if args.save:
-        out_fname = f'{base_out_filename} {" ".join(variables)} lineout.png'
+        out_fname = f'{base_save_filename} {" ".join(variables)} lineout.png'
         save_figure(out_fname)
         # plt.savefig(out_fname, dpi=200)
 
@@ -198,7 +207,7 @@ if args.target:
     if args.title:
         ax.set_title(' '.join(args.title))
     if args.save:
-        out_fname = f'{base_out_filename} Target Design.png'
+        out_fname = f'{base_save_filename} Target Design.png'
         plt.savefig(out_fname, dpi=200)
 
 if args.shock or (isinstance(args.shock, list) and len(args.shock) == 0):
@@ -213,7 +222,7 @@ if args.shock or (isinstance(args.shock, list) and len(args.shock) == 0):
     if args.title:
         ax.set_title(' '.join(args.title))
     if args.save:
-        out_fname = f'{base_out_filename} {args.shock} Us.png'
+        out_fname = f'{base_save_filename} {args.shock} Us.png'
         plt.savefig(out_fname, dpi=200)
 
 if not args.quiet:
