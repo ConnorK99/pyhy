@@ -193,7 +193,7 @@ class HyadesOutput:
             units = 'Joules/(K * m^3)'
             unit_conversion = 8.62e-9
         else:
-            raise InvalidVariable(f'HyadesOutput does not recognize variable: {var}')
+            raise ValueError(f'HyadesOutput does not recognize variable: {var}')
 
         output *= unit_conversion
 
