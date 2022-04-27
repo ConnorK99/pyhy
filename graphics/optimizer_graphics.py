@@ -201,13 +201,16 @@ def best_histogram(run_name):
     with open(json_name) as f:
         jd = json.load(f)
     best_run = run_name + '_' + jd['best']['number']
+    delay = jd['iterations'][jd['best']['number']]['delay']
     hyades_name = os.path.join('./data', run_name, best_run)
     hyades = HyadesOutput(hyades_name, 'Pres')
     x_start = hyades.layers[hyades.moi]['Mesh Start']
     x_stop = hyades.layers[hyades.moi]['Mesh Stop'] - 1
     if hyades.xray_probe:
-        t_start = np.argmin(abs(hyades.time - hyades.xray_probe[0]))
-        t_stop = np.argmin(abs(hyades.time - hyades.xray_probe[1]))
+        delayed_xray_probe_start = hyades.xray_probe[0] + delay
+        delayed_xray_probe_stop = hyades.xray_probe[1] + delay
+        t_start = np.argmin(abs(hyades.time - delayed_xray_probe_start))
+        t_stop = np.argmin(abs(hyades.time - delayed_xray_probe_stop))
         pressure_slice = hyades.output[t_start:t_stop, x_start:x_stop]
     else:
         pressure_slice = hyades.output[:, x_start:x_stop]
