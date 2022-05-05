@@ -250,6 +250,7 @@ class InfWriter:
         """
         # Check for increments. If any are default calculate all of them
         if layers[0].increment == 'fast':
+            '''did this only appear in the feature/increment branch'''
             # Fast increments are set to 1.0 for now.
             # increments = self.calc_increments(layers,  FZM_match_density=True)
             increments = [1.0 for L in layers]
