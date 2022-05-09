@@ -250,13 +250,17 @@ class InfWriter:
         """
         # Check for increments. If any are default calculate all of them
         if layers[0].increment == 'fast':
-            '''did this only appear in the feature/increment branch'''
-            # Fast increments are set to 1.0 for now.
-            # increments = self.calc_increments(layers,  FZM_match_density=True)
+            '''
+            In the old increment calculation based on the excel spreadsheet from Ray,
+            the increments were calculated using the following:
+            increments = self.calc_increments(layers,  FZM_match_density=True)
+            I just set them all to one.
+            '''
             increments = [1.0 for L in layers]
         elif layers[0].increment == 'accurate':
             # Accurate increments space the mesh so the mass change between neighboring zones is less than 10%
-            increments = self.calc_increments(layers,  FZM_match_density=False)
+            # increments = self.calc_increments(layers,  FZM_match_density=False)
+            increments = self.calculate_increments(layers)
         elif not any([(L.increment == 'fast') or (L.increment == 'accurate') for L in layers]):
             increments = [float(L.increment) for L in layers]
 
