@@ -1,7 +1,7 @@
 """The newest version of how to control the optimizer with a configuration file and configparser
 
 Todo:
-    - Does the restart function need to clear any hyades data after the best one?
+    - Does the restart function need to clear any hyades data after the last one?
 """
 import os
 import json
