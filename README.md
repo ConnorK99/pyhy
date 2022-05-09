@@ -1,6 +1,6 @@
 # Python for Hyades - PyHy 
 This repository is a Python wrapper for the Hyades hydrocode.
-The primary goal of this repository is lower the barrier to entry of the Hyades hydrocode by 
+The primary goal of this repository is to lower the barrier to entry of the Hyades hydrocode by 
 automating the tedious parts of the most common uses including creating input files, running the simulation,
 organizing the outputs, visualizing the inputs and outputs, and fitting Hyades velocities to experimental measurements.
   
