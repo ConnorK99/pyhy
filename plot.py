@@ -98,13 +98,18 @@ parser.add_argument('-xth', '--xt_histogram', nargs='+',
                          '\nAdd a number to the command to set the minimum pressure threshold.')
 parser.add_argument('-l', '--lineout', nargs='+',
                     help='Plot lineouts of a variable of interest at multiple times.')
-parser.add_argument('-t', '--target', action='store_true',
-                    help='Toggle to plot the target design. Works best on targets with wide layers.')
+
 parser.add_argument('-k', '--shock', nargs='*',
                     choices=['L', 'R', 'Avg', 'difference', 'Cubic', 'all'],
                     help='Toggle to plot the Shock Velocity.'
                          ' Optionally select how to index Particle Velocity in Shock calculation (default: Cubic).'
                          ' Multiple selections are allowed and will be plotted on a single figure.')
+parser.add_argument('-t', '--target', action='store_true',
+                    help='Toggle to plot the target design. Works best on targets with wide layers.')
+parser.add_argument('-z', '--zone', nargs='*',
+                    choices=['width', 'mass', 'change'],
+                    help='Plot information about the Zones in a simulation.')
+'''End plot arguments. Below are modifiers to some of the plot options above.'''
 parser.add_argument('-c', '--coordinate', choices=('e', 'eulerian', 'l', 'lagrangian'),
                     help='Coordinate system for the x-axis of XT diagrams and lineouts. (Default: Lagrangian)')
 parser.add_argument('--title', type=str, nargs='+',
@@ -201,15 +206,6 @@ if args.lineout:
         save_figure(out_fname)
         # plt.savefig(out_fname, dpi=200)
 
-if args.target:
-    '''Target diagrams only use the required filename'''
-    fig, ax = static_graphics.visualize_target(abs_path)
-    if args.title:
-        ax.set_title(' '.join(args.title))
-    if args.save:
-        out_fname = f'{base_save_filename} Target Design.png'
-        plt.savefig(out_fname, dpi=200)
-
 if args.shock or (isinstance(args.shock, list) and len(args.shock) == 0):
     if isinstance(args.shock, list) and len(args.shock) == 0:
         interpolation_mode = 'Cubic'
@@ -224,6 +220,52 @@ if args.shock or (isinstance(args.shock, list) and len(args.shock) == 0):
     if args.save:
         out_fname = f'{base_save_filename} {args.shock} Us.png'
         plt.savefig(out_fname, dpi=200)
+
+if args.target:
+    '''Target diagrams only use the required filename'''
+    fig, ax = static_graphics.visualize_target(abs_path)
+    if args.title:
+        ax.set_title(' '.join(args.title))
+    if args.save:
+        out_fname = f'{base_save_filename} Target Design.png'
+        plt.savefig(out_fname, dpi=200)
+
+if args.zone or args.zone == []:
+    '''
+    The zone input takes any number of arguments, including zero.
+    If --zone is specified with no arguments afterward, the zone mass changes are plotted.
+    Otherwise, plot all figures requested.
+    Example:
+        The following would plot the zone mass changes:
+        $ python plot.py filename --zone
+        The following would plot the zone widths and zone masses, each on their own figure:
+        $ python plot.py filename --zone width mass
+    Note that type(args.zone) is a list no matter how many arguments are provided.
+    '''
+    if args.zone == []:  # Covers the user inputting --zone with no arguments after
+        args.zone = ['change']
+
+    if 'width' in args.zone:
+        fig, ax = static_graphics.zone_widths(abs_path)
+        if args.title:
+            ax.set_title(' '.join(args.title))
+        if args.save:
+            out_fname = f'{base_save_filename} Zone Widths.png'
+            plt.savefig(out_fname, dpi=200)
+    if 'mass' in args.zone:
+        fig, ax = static_graphics.zone_masses(abs_path)
+        if args.title:
+            ax.set_title(' '.join(args.title))
+        if args.save:
+            out_fname = f'{base_save_filename} Zone Masses.png'
+            plt.savefig(out_fname, dpi=200)
+    if 'change' in args.zone:
+        fig, ax = static_graphics.zone_mass_changes(abs_path)
+        if args.title:
+            ax.set_title(' '.join(args.title))
+        if args.save:
+            out_fname = f'{base_save_filename} Zone Mass Changes.png'
+            plt.savefig(out_fname, dpi=200)
 
 if not args.quiet:
     plt.show()
