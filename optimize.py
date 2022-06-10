@@ -123,7 +123,7 @@ def run_optimizer(run_name, restart=0, debug=0):
             sol = optimize.minimize(hyop.run, hyop.pres,
                                     method=config.get('Optimization', 'method'),
                                     jac=jac,
-                                    tol=config.getfloat('Optimization', 'tol'),
+                                    tol=config.getfloat('Optimization', 'tol', fallback=None),
                                     bounds=bounds,
                                     options={'disp': config.getboolean('Optimization', 'disp'),
                                              'maxfun': config.getint('Optimization', 'maxfun'),
