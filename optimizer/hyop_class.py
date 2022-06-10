@@ -58,7 +58,8 @@ class HyadesOptimizer:
     def read_experimental_data(self, exp_file_name, time_of_interest=None):
         """Load the experimental data into the class
 
-        Assigns self.exp_file, self.exp_time, and self.exp_data
+        Assigns self.exp_file, self.exp_time, and self.exp_data.
+        This function interpolates the experimental data every 0.1 ns from the (start, stop) time_of_interest
 
         Note:
             This function should only be called once before the optimizer is run
@@ -94,7 +95,7 @@ class HyadesOptimizer:
         if (not time_of_interest) or (time_of_interest == 'None'):
             time_of_interest = (min(velocity_time), max(velocity_time))
 
-        self.exp_time = np.linspace(time_of_interest[0], time_of_interest[1], num=100)
+        self.exp_time = np.arange(time_of_interest[0], time_of_interest[1] + 0.1, step=0.1)
         self.exp_data = f_velocity(self.exp_time)
         if self.debug >= 1:
             print(f'DEBUG: Experimental Data\n'
@@ -156,7 +157,7 @@ class HyadesOptimizer:
         logging.info(log)
 
     def calculate_residual(self):
-        """Calculates the sum of least squares residual between the most recent Hyades simulation and experiment"""
+        """Calculates the average least squares residual between the most recent Hyades simulation and experiment"""
         hyades_file = f'{self.run_name}_{str(self.iter_count).zfill(3)}'
         hyades_path = os.path.join(self.path, hyades_file, hyades_file)
         hyades_U = HyadesOutput(hyades_path, 'U')
@@ -251,7 +252,9 @@ class HyadesOptimizer:
             interp_hyades = f_hyades_U(self.exp_time)
             if any(np.isnan(interp_hyades)):
                 raise ValueError(f'Found NaN in interpolated HyadesOutput {hyades_path}')
-            self.residual = sum(np.square(self.exp_data - interp_hyades))
+            sum_of_squares = sum(np.square(self.exp_data - interp_hyades))
+            residual = sum_of_squares / len(self.exp_data)  # normalize sum_of_squares by number of data points
+            self.residual = residual
 
     def save_json(self):
         """Save the input pressure, timing, and residual to a JSON file"""
