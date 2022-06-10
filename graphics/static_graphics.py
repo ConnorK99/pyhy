@@ -211,192 +211,6 @@ def xt_diagram(filename, var, coordinate_system='Lagrangian', show_layers=True, 
     return fig, ax
 
 
-def visualize_target(filename):
-    """Draw and label the simulation layers to scale.
-
-    Note:
-        Very thin layers tend to create messy, unreadable graphics.
-
-    Args:
-        filename (string): Name of the .inf
-
-    Returns:
-        fig (matplotlib figure), ax (matplotlib axis)
-
-    """
-    hyades = HyadesOutput(filename, 'U')
-    fig, ax = plt.subplots()
-    colors = ('coral', 'steelblue', 'firebrick', 'orchid', 'seagreen', 'chocolate')
-    for material, c in zip(hyades.layers, colors):
-
-        x = hyades.layers[material]['X Start']
-        width = hyades.layers[material]['X Stop'] - hyades.layers[material]['X Start']
-        y = 0
-        height = 1
-        label = f"{hyades.layers[material]['Name']}\n{hyades.layers[material]['EOS']}"
-        ax.text(x + width / 2, 1.1, label, ha='center')
-        ax.text(x + width / 2, -0.1, f'{width:.2f} µm', ha='center')
-        ax.add_patch(matplotlib.patches.Rectangle((x, y), width, height,
-                                                  facecolor=c,
-                                                  edgecolor=None))
-    upper_x = hyades.x[0, :].max() * 1.05
-    lower_x = hyades.x[0, :].max() * -0.05
-    ax.set(xlabel='Lagrangian Position (µm)', xlim=(lower_x, upper_x), ylim=(-0.3, 1.3))
-    ax.set_title(f'Target Visualization of {hyades.run_name}')
-    plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-    plt.grid(b=False, axis='y', which='both')
-
-    return fig, ax
-
-
-def eulerian_position(filename):
-    """Plot the Eulerian position all zones over time.
-
-    Note:
-        In laser simulations the ablated material travels very far, throwing off the x scale.
-
-    Args:
-        filename (string): Name of the .cdf
-
-    Returns:
-        fig (matplotlib figure), ax (matplotlib axis)
-
-    """
-    hyades = HyadesOutput(filename, 'R')
-    times = [i for i in range(int(hyades.time.max()))]
-
-    # get region numbers from the cdf to color code each material in the eulerian plot
-    cdf_name = os.path.join(hyades.dir_name, hyades.run_name+'.cdf')
-    cdf = netcdf.netcdf_file(cdf_name, 'r')
-    region_numbers = cdf.variables['RegNums'].data.copy()
-    region_numbers = region_numbers[1:-1]  # region numbers has a zero padded on either end
-    cdf.close()
-
-    colors = plt.cm.tab10(np.linspace(0, 1, num=10))
-    fig, ax = plt.subplots()
-    for t in times:
-        i = np.argmin(abs(hyades.time - t))
-        mesh_coordinates = hyades.output[i, :]
-        zone_coordinates = (mesh_coordinates[1:] + mesh_coordinates[:-1]) / 2
-        for layer_num in np.unique(region_numbers):
-            mask, = np.where(region_numbers == layer_num)
-            layer_zone_coordinates = zone_coordinates[mask]
-            y = [hyades.time[i] for j in range(len(layer_zone_coordinates))]
-            ax.plot(layer_zone_coordinates, y, marker='o', color=colors[layer_num-1], markersize=1)
-
-    ax.set_title(f'Eulerian Position of {hyades.run_name}')
-    ax.set(xlabel=f'Eulerian Position ({hyades.units})', ylabel='Time (ns)')
-    # customize legend so the markers are visible, otherwise they are hard to see due to markersize=1
-    labels = [hyades.layers[material]['Name'] for material in hyades.layers]
-    handles = [matplotlib.patches.Patch(color=c, label=l) for c, l in zip(colors, labels)]
-    ax.legend(handles=handles)
-
-    return fig, ax
-
-
-def plot_shock_velocity(filename, mode, color=None):
-    """Plot the Shock Velocity.
-
-    Note:
-        Mode can be used to compare effects of particle velocity indexing.
-
-    Args:
-        filename (string): Name of the .cdf
-        mode (string): Type of indexing to use on particle velocity - one of Left, Right, All, Difference, or a list
-        color:
-
-    Returns:
-        fig (matplotlib figure), ax (matplotlib axis)
-
-    """
-    save_dictionary = {}  # Dictionary to hold x, y data that can be written to .csv
-    if isinstance(mode, list):  # Plot multiple shock velocities
-        save_dictionary['Time (ns)'] = ShockVelocity(filename, 'Cubic').time
-        fig, ax = plt.subplots()
-        for m in mode:
-            shock = ShockVelocity(filename, m)
-            ax.plot(shock.time, shock.Us, label=m)
-            save_dictionary[f'{m} Us (km/s)'] = shock.Us
-        ax.legend()
-        ax.set_title(f'Comparing Us of {os.path.basename(filename)}')
-        comment = f'Comparing the {", ".join(mode)}-indexed Shock Velocities of {shock.run_name}'
-    elif mode.lower() == 'all':  # Plot Shock Velocity using Left, Right, and Average Particle Velocity
-        save_dictionary['Time (ns)'] = ShockVelocity(filename, 'Cubic').time
-        fig, ax = plt.subplots()
-        for m in ('left', 'right', 'average', 'cubic'):
-            shock = ShockVelocity(filename, m)
-            ax.plot(shock.time, shock.Us, label=m)
-            save_dictionary[f'{m} Us (km/s)'] = shock.Us
-            ax.legend()
-        ax.set_title(f'Comparison of L, R, Avg, Cubic Us for {shock.run_name}')
-        comment = ax.get_title()
-    elif mode.lower() == 'difference':  # Plot the difference between the left and right indexed shock velocities
-        L_shock = ShockVelocity(filename, 'left')
-        R_shock = ShockVelocity(filename, 'right')
-        assert (L_shock.time == R_shock.time).all(), 'Left and Right shock timings do not agree'
-        fig, ax = plt.subplots()
-        ax.plot(L_shock.time, L_shock.Us - R_shock.Us, label='Left - Right')
-        save_dictionary['Time (ns)'] = L_shock.time
-        save_dictionary['L - R Us (km/s)'] = L_shock.Us - R_shock.Us
-        ax.legend()
-        ax.set_title(f'Comparing L and R Us for {L_shock.run_name}')
-        comment = f'A comparison of the Left and Right indexed shock velocities of {L_shock.run_name}'
-    else:
-        shock = ShockVelocity(filename, mode=mode)
-        fig, ax = plt.subplots()
-        if color:
-            ax.plot(shock.time, shock.Us, color=color)
-        else:
-            ax.plot(shock.time, shock.Us)
-        save_dictionary['Time (ns)'] = shock.time
-        save_dictionary[f'{mode} Us (km/s)'] = shock.Us
-        ax.set_title(f'Shock Velocity ({mode}) of {shock.run_name}')
-        comment = f'{mode}-indexed Shock Velocity of {shock.run_name}'
-    ax.set(xlabel='Time (ns)', ylabel='Shock Velocity (km/s)')
-
-    run_name = ShockVelocity(filename, 'Cubic').run_name
-    out_fname = os.path.join('data', run_name, f'{run_name}_Us.csv')
-    fig.canvas.manager.toolmanager.add_tool('Save Data', SaveTools,
-                                            data_dictionary=save_dictionary,
-                                            header=comment,
-                                            filename=out_fname)
-    fig.canvas.manager.toolbar.add_tool('Save Data', 'foo')
-
-    return fig, ax
-
-
-def debug_shock_velocity(filename, mode='Cubic'):
-    """Plot the index and window used in the shock velocity calculations.
-
-    This plot is not useful for interpreting Hyades simulations. It is a visual aid for debugging Shock Front
-    calculations done by the tools.hyades_reader.ShockVelocity
-
-    Args:
-        filename (string): Name of the Hyades Run
-        mode (string, optional): indexing mode for Shock Velocity calculations
-
-    Returns:
-        fig (matplotlib figure), ax (matplotlib axis)
-
-    """
-    hyades = HyadesOutput(filename, 'Pres')
-    shock = ShockVelocity(filename, mode)
-    fig, ax = xt_diagram(filename, 'Pres')
-    x0 = hyades.x[0, shock.window_start]
-    y0 = shock.time
-    x1 = hyades.x[0, shock.window_stop]
-    y1 = shock.time
-    ax.plot(x0, y0,
-            color='white', ls='dotted', lw=2, label='Shock Window')
-    ax.plot(x1, y1,
-            color='white', ls='dotted', lw=2)
-    ax.scatter(hyades.x[0, shock.shock_index], shock.time,
-               color='red', marker='x', label='Shock Front')
-    ax.legend()
-
-    return fig, ax
-
-
 def lineout(filename, var, times, coordinate_system='Lagrangian', show_layers: bool = True):
     """Plot the variable of interest at multiple times.
 
@@ -534,17 +348,306 @@ def lineout(filename, var, times, coordinate_system='Lagrangian', show_layers: b
     return fig, ax
 
 
+def eulerian_position(filename):
+    """Plot the Eulerian position all zones over time.
+
+    Note:
+        In laser simulations the ablated material travels very far, throwing off the x scale.
+
+    Args:
+        filename (string): Name of the .cdf
+
+    Returns:
+        fig (matplotlib figure), ax (matplotlib axis)
+
+    """
+    hyades = HyadesOutput(filename, 'R')
+    times = [i for i in range(int(hyades.time.max()))]
+
+    # get region numbers from the cdf to color code each material in the eulerian plot
+    cdf_name = os.path.join(hyades.dir_name, hyades.run_name+'.cdf')
+    cdf = netcdf.netcdf_file(cdf_name, 'r')
+    region_numbers = cdf.variables['RegNums'].data.copy()
+    region_numbers = region_numbers[1:-1]  # region numbers has a zero padded on either end
+    cdf.close()
+
+    colors = plt.cm.tab10(np.linspace(0, 1, num=10))
+    fig, ax = plt.subplots()
+    for t in times:
+        i = np.argmin(abs(hyades.time - t))
+        mesh_coordinates = hyades.output[i, :]
+        zone_coordinates = (mesh_coordinates[1:] + mesh_coordinates[:-1]) / 2
+        for layer_num in np.unique(region_numbers):
+            mask, = np.where(region_numbers == layer_num)
+            layer_zone_coordinates = zone_coordinates[mask]
+            y = [hyades.time[i] for j in range(len(layer_zone_coordinates))]
+            ax.plot(layer_zone_coordinates, y, marker='o', color=colors[layer_num-1], markersize=1)
+
+    ax.set_title(f'Eulerian Position of {hyades.run_name}')
+    ax.set(xlabel=f'Eulerian Position ({hyades.units})', ylabel='Time (ns)')
+    # customize legend so the markers are visible, otherwise they are hard to see due to markersize=1
+    labels = [hyades.layers[material]['Name'] for material in hyades.layers]
+    handles = [matplotlib.patches.Patch(color=c, label=l) for c, l in zip(colors, labels)]
+    ax.legend(handles=handles)
+
+    return fig, ax
+
+
+def zone_widths(filename):
+    """
+
+    Args:
+        filename:
+
+    Returns:
+
+    """
+    hyades = HyadesOutput(filename, 'U')  # Particle Velocity (U) has mesh coordinates
+    initial_mesh_positions = hyades.x[0, :]
+    zone_widths = initial_mesh_positions[1:] - initial_mesh_positions[:-1]
+    '''
+    When all the zone widths are the same, Python calculates a difference around the 12th decimal place due to a 
+    floating point arithmetic error. The zone_widths are rounded to get rid of the floating point error 
+    while maintaining accuracy to 6 decimal places, which is more than enough for this plot.
+    '''
+    zone_widths = np.round(zone_widths, decimals=6)
+
+    fig, ax = plt.subplots()
+    ax.scatter(range(len(zone_widths)), zone_widths,
+               marker='o', s=2)
+    ax.set(xlabel='Zone Number', ylabel='Zone Widths (um)')
+    ax.set_title(f'Zone Widths of {os.path.basename(filename)}')
+    ax = add_layers(hyades, ax, coordinate_system='mesh')
+    return fig, ax
+
+
+def zone_masses(filename):
+    """
+
+    Args:
+        filename:
+
+    Returns:
+
+    """
+    hyades = HyadesOutput(filename, 'U')  # Particle Velocity (U) has mesh coordinates
+    initial_mesh_positions = hyades.x[0, :]
+    zone_widths = initial_mesh_positions[1:] - initial_mesh_positions[:-1]
+    '''
+    When all the zone widths are the same, Python calculates a difference around the 12th decimal place due to a 
+    floating point arithmetic error. The zone_widths are rounded to get rid of the floating point error 
+    while maintaining accuracy to 6 decimal places, which is more than enough for this plot.
+    '''
+    zone_widths = np.round(zone_widths, decimals=6)
+    zone_densities = HyadesOutput(filename, 'Rho').output[0, :]
+    zone_masses = zone_widths * zone_densities * 100  # multiplying by 100 converts 1e-4 grams to micrograms
+
+    fig, ax = plt.subplots()
+    ax.scatter(range(len(zone_masses)), zone_masses, marker='o', s=2)
+    ax.set(xlabel='Zone Number', ylabel='Zone Mass (micrograms)')
+    ax.set_title(f'Zone Masses of {os.path.basename(filename)}')
+    ax = add_layers(hyades, ax, coordinate_system='mesh')
+    return fig, ax
+
+
+def zone_mass_changes(filename):
+    """Plots the change, as a percentage, of zone mass between a zone and its right-hand neighbor
+
+        Args:
+            filename:
+
+        Returns:
+
+    """
+    hyades = HyadesOutput(filename, 'U')  # Particle Velocity (U) has mesh coordinates
+    initial_mesh_positions = hyades.x[0, :]
+    zone_widths = initial_mesh_positions[1:] - initial_mesh_positions[:-1]
+    zone_densities = HyadesOutput(filename, 'Rho').output[0, :]
+    zone_masses = zone_widths * zone_densities * 100  # multiplying by 100 converts 1e-4 grams to micrograms
+
+    percentage_change_in_zone_mass = 100 * (zone_masses[1:] - zone_masses[:-1]) / zone_masses[1:]
+    acceptable_range = abs(percentage_change_in_zone_mass) < 10
+    x = np.array(range(len(percentage_change_in_zone_mass)))
+
+    fig, ax = plt.subplots()
+    ax.scatter(x[acceptable_range], percentage_change_in_zone_mass[acceptable_range],
+               label='Acceptable Mass Change', marker='o', color='tab:green')
+    ax.scatter(x[~acceptable_range], percentage_change_in_zone_mass[~acceptable_range],
+               label='Excessive Mass Change', marker='x', color='tab:red')
+    x_lim = ax.get_xlim()
+    ax.fill_between(x_lim, 10, -10, label='10% Range', edgecolor=None, facecolor='tab:gray', alpha=0.5)
+    ax.set_xlim(x_lim)
+    ax.set(xlabel='Zone Number', ylabel='% Change in Zone Mass')
+    ax.legend(loc='lower right')
+    ax.set_ylim(ax.get_ylim()[0], ax.get_ylim()[1] * 1.1)
+
+    if any(acceptable_range):
+        number_of_excessive_mass_changes = np.count_nonzero(~acceptable_range)
+        if number_of_excessive_mass_changes == 0:
+            title = 'All Zone Mass Changes are Acceptable'
+        elif number_of_excessive_mass_changes == 1:
+            title = '1 Zone Mass Change Exceeds 10%'
+        elif number_of_excessive_mass_changes > 1:
+            title = f'{number_of_excessive_mass_changes} Zone Mass Changes Exceed 10%'
+    else:
+        title = 'No Zone Mass Changes are Acceptable'
+    ax.set_title(title + f' in {os.path.basename(filename)}', fontsize='medium')
+    ax = add_layers(hyades, ax, coordinate_system='mesh')
+    return fig, ax
+
+
+def plot_shock_velocity(filename, mode, color=None):
+    """Plot the Shock Velocity.
+
+    Note:
+        Mode can be used to compare effects of particle velocity indexing.
+
+    Args:
+        filename (string): Name of the .cdf
+        mode (string): Type of indexing to use on particle velocity - one of Left, Right, All, Difference, or a list
+        color:
+
+    Returns:
+        fig (matplotlib figure), ax (matplotlib axis)
+
+    """
+    save_dictionary = {}  # Dictionary to hold x, y data that can be written to .csv
+    if isinstance(mode, list):  # Plot multiple shock velocities
+        save_dictionary['Time (ns)'] = ShockVelocity(filename, 'Cubic').time
+        fig, ax = plt.subplots()
+        for m in mode:
+            shock = ShockVelocity(filename, m)
+            ax.plot(shock.time, shock.Us, label=m)
+            save_dictionary[f'{m} Us (km/s)'] = shock.Us
+        ax.legend()
+        ax.set_title(f'Comparing Us of {os.path.basename(filename)}')
+        comment = f'Comparing the {", ".join(mode)}-indexed Shock Velocities of {shock.run_name}'
+    elif mode.lower() == 'all':  # Plot Shock Velocity using Left, Right, and Average Particle Velocity
+        save_dictionary['Time (ns)'] = ShockVelocity(filename, 'Cubic').time
+        fig, ax = plt.subplots()
+        for m in ('left', 'right', 'average', 'cubic'):
+            shock = ShockVelocity(filename, m)
+            ax.plot(shock.time, shock.Us, label=m)
+            save_dictionary[f'{m} Us (km/s)'] = shock.Us
+            ax.legend()
+        ax.set_title(f'Comparison of L, R, Avg, Cubic Us for {shock.run_name}')
+        comment = ax.get_title()
+    elif mode.lower() == 'difference':  # Plot the difference between the left and right indexed shock velocities
+        L_shock = ShockVelocity(filename, 'left')
+        R_shock = ShockVelocity(filename, 'right')
+        assert (L_shock.time == R_shock.time).all(), 'Left and Right shock timings do not agree'
+        fig, ax = plt.subplots()
+        ax.plot(L_shock.time, L_shock.Us - R_shock.Us, label='Left - Right')
+        save_dictionary['Time (ns)'] = L_shock.time
+        save_dictionary['L - R Us (km/s)'] = L_shock.Us - R_shock.Us
+        ax.legend()
+        ax.set_title(f'Comparing L and R Us for {L_shock.run_name}')
+        comment = f'A comparison of the Left and Right indexed shock velocities of {L_shock.run_name}'
+    else:
+        shock = ShockVelocity(filename, mode=mode)
+        fig, ax = plt.subplots()
+        if color:
+            ax.plot(shock.time, shock.Us, color=color)
+        else:
+            ax.plot(shock.time, shock.Us)
+        save_dictionary['Time (ns)'] = shock.time
+        save_dictionary[f'{mode} Us (km/s)'] = shock.Us
+        ax.set_title(f'Shock Velocity ({mode}) of {shock.run_name}')
+        comment = f'{mode}-indexed Shock Velocity of {shock.run_name}'
+    ax.set(xlabel='Time (ns)', ylabel='Shock Velocity (km/s)')
+
+    run_name = ShockVelocity(filename, 'Cubic').run_name
+    out_fname = os.path.join('data', run_name, f'{run_name}_Us.csv')
+    fig.canvas.manager.toolmanager.add_tool('Save Data', SaveTools,
+                                            data_dictionary=save_dictionary,
+                                            header=comment,
+                                            filename=out_fname)
+    fig.canvas.manager.toolbar.add_tool('Save Data', 'foo')
+
+    return fig, ax
+
+
+def debug_shock_velocity(filename, mode='Cubic'):
+    """Plot the index and window used in the shock velocity calculations.
+
+    Note:
+        This plot is *not* useful for interpreting Hyades simulations. It is a visual aid for debugging Shock Front
+        calculations done by the tools.hyades_reader.ShockVelocity
+
+    Args:
+        filename (string): Name of the Hyades Run
+        mode (string, optional): indexing mode for Shock Velocity calculations
+
+    Returns:
+        fig (matplotlib figure), ax (matplotlib axis)
+
+    """
+    hyades = HyadesOutput(filename, 'Pres')
+    shock = ShockVelocity(filename, mode)
+    fig, ax = xt_diagram(filename, 'Pres')
+    x0 = hyades.x[0, shock.window_start]
+    y0 = shock.time
+    x1 = hyades.x[0, shock.window_stop]
+    y1 = shock.time
+    ax.plot(x0, y0,
+            color='white', ls='dotted', lw=2, label='Shock Window')
+    ax.plot(x1, y1,
+            color='white', ls='dotted', lw=2)
+    ax.scatter(hyades.x[0, shock.shock_index], shock.time,
+               color='red', marker='x', label='Shock Front')
+    ax.legend()
+
+    return fig, ax
+
+
+def visualize_target(filename):
+    """Draw and label the simulation layers to scale.
+
+    Note:
+        Very thin layers tend to create messy, unreadable graphics.
+
+    Args:
+        filename (string): Name of the .inf
+
+    Returns:
+        fig (matplotlib figure), ax (matplotlib axis)
+
+    """
+    hyades = HyadesOutput(filename, 'U')
+    fig, ax = plt.subplots()
+    colors = ('coral', 'steelblue', 'firebrick', 'orchid', 'seagreen', 'chocolate')
+    for material, c in zip(hyades.layers, colors):
+
+        x = hyades.layers[material]['X Start']
+        width = hyades.layers[material]['X Stop'] - hyades.layers[material]['X Start']
+        y = 0
+        height = 1
+        label = f"{hyades.layers[material]['Name']}\n{hyades.layers[material]['EOS']}"
+        ax.text(x + width / 2, 1.1, label, ha='center')
+        ax.text(x + width / 2, -0.1, f'{width:.2f} µm', ha='center')
+        ax.add_patch(matplotlib.patches.Rectangle((x, y), width, height,
+                                                  facecolor=c,
+                                                  edgecolor=None))
+    upper_x = hyades.x[0, :].max() * 1.05
+    lower_x = hyades.x[0, :].max() * -0.05
+    ax.set(xlabel='Lagrangian Position (µm)', xlim=(lower_x, upper_x), ylim=(-0.3, 1.3))
+    ax.set_title(f'Target Visualization of {hyades.run_name}')
+    plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
+    plt.grid(b=False, axis='y', which='both')
+
+    return fig, ax
+
+
 def add_layers(hyades, ax, coordinate_system='Lagrangian', color='black'):
     """Add the layer names and interfaces to an axis
     Args:
         hyades (HyadesOutput): Used for the layer information
         ax (matplotlib axis): axis to add the layers to
-        coordinate_system (string, optional): Eulerian or Lagrangian Coordinate system used for distances
+        coordinate_system (string, optional): Lagrangian, Eulerian, or Mesh Coordinate system used for x values
         color (string, optional): Color used for text and lines. Try to pick one contrasting your plot
     """
     coordinate_system = coordinate_system.lower()
-    if not (coordinate_system == 'lagrangian' or coordinate_system == 'eulerian'):
-        raise ValueError(f'Unrecognized coordinate system: {coordinate_system!r}. Options are Lagrangian or Eulerian')
+
     y_min = ax.get_ylim()[0]
     y_max = ax.get_ylim()[1]
     if coordinate_system == 'lagrangian':
@@ -562,7 +665,7 @@ def add_layers(hyades, ax, coordinate_system='Lagrangian', color='black'):
             ax.text(text_x, text_y, label,
                     color=color, ha='center')
             ax.set_xlim(x_min, x_max)
-    else:  # Eulerian Coordinate system
+    elif coordinate_system == 'eulerian':  # Eulerian Coordinate system
         for material in hyades.layers:
             right_boundary_index = hyades.layers[material]['Mesh Stop'] - 1  # Account for Python 0-index
             if hyades.data_dimensions[1] == 'NumZones':  # Account for Mesh to Zone conversion
@@ -578,6 +681,16 @@ def add_layers(hyades, ax, coordinate_system='Lagrangian', color='black'):
             label = hyades.layers[material]['Name']
             ax.text(text_x, text_y, label,
                     color=color, ha='center')
+    elif coordinate_system == 'mesh':  # Plot the material interfaces at mesh boundaries
+        for layer in hyades.layers:
+            material_name = hyades.layers[layer]['Name']
+            mesh_start = hyades.layers[layer]['Mesh Start']
+            mesh_stop = hyades.layers[layer]['Mesh Stop']
+            text_x = mesh_start + (((mesh_stop - 1) - mesh_start) / 2)
+            text_y = y_min + ((y_max - y_min) * 0.9)
+            ax.text(text_x, text_y, material_name, ha='center')
+            if not layer == list(hyades.layers.keys())[-1]:  # skips the last layer
+                ax.axvline(mesh_stop - 1, color=color, linestyle='solid', lw=1, alpha=0.7)
 
     ax.set_ylim(y_min, y_max)
 
@@ -614,3 +727,11 @@ def show_ambient_density(hyades, ax):
         show_label = False
 
     return ax
+
+
+if __name__ == '__main__':
+    filename = os.path.join('../data/', 's76624_accurate_increments')
+    fig1, ax1 = zone_masses(filename)
+    fig2, ax2 = zone_mass_changes(filename)
+    fig3, ax3 = zone_widths(filename)
+    plt.show()

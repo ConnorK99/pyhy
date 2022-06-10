@@ -330,7 +330,7 @@ class InputGUI:
                                     f'The current GUI settings were not written to an inf.'
                                     f'\nTry another name or remove the old file in pyhy/data/inf.')
                 return  # exits write_out_props and does NOT write inf
-        # End checks for valid user input
+
         layers = []
         for i, T in enumerate(self.tabs):
             prop_dict = {}  # scraps all the properties out of GUI
@@ -372,6 +372,20 @@ class InputGUI:
         writer = InfWriter()
         writer.add_layers(layers, sim_props)  # put layers & simulation properties in the InfWriter
         # writer.display()  # displays a formatted inf file
+
+        '''Last round of checks on user input'''
+        if any([L.max_zone_width > 1 for L in layers]):  # Check for Zones greater than 1 micron created by increments
+            wide_layers = [f'Layer{i + 1}' for i, L in enumerate(layers) if L.max_zone_width > 1]
+            response = messagebox.askyesno(messagebox_title,
+                                           f'{", ".join(wide_layers)} contain zones wider than 1 micron. '
+                                           f'This is likely caused by low mesh resolution or extreme increments. '
+                                           f'Are you sure you want to continue writing this inf?')
+            if response:  # User clicks yes
+                pass
+            else:  # User clicks no
+                return  # exits and does NOT write inf
+        '''End checks on user input'''
+
         inf_dir = os.path.join('.', 'data', 'inf')
         if self.out_dir.get() == 'Select Directory':
             if os.path.isdir(inf_dir):

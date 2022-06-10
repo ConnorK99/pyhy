@@ -1,8 +1,4 @@
-"""Several classes used by the `inf_GUI` to handle .inf creation
-
-Todo:
-    * confirm the increment calculator works well
-"""
+"""Several classes used by the `inf_GUI` to handle .inf creation"""
 import datetime
 import numpy as np
 import pandas as pd
@@ -181,6 +177,7 @@ class Layer:
         self.is_material_of_interest = props['is_material_of_interest']
         self.is_shock_material_of_interest = props['is_shock_material_of_interest']
         self.increment = props['increment']
+        self.max_zone_width = np.nan  # Holds onto largest zone width created by increment
 
         if props['custom_eos'] == 'Default':
             # get the EOS number from the material selection
@@ -218,11 +215,7 @@ class Layer:
             
 
 class InfWriter:
-    """Takes an iterable of Layers and formats them into an inf
-
-    Todo:
-        * Determine if my new functions calculate_increment, can be swapped in or if we should just ignore increment
-    """
+    """Takes an iterable of Layers and formats them into an inf"""
     
     def __init__(self):
         self.inf = {'DESCRIPTION': [],
@@ -250,15 +243,25 @@ class InfWriter:
         """
         # Check for increments. If any are default calculate all of them
         if layers[0].increment == 'fast':
-            # Fast increments are set to 1.0 for now.
-            # increments = self.calc_increments(layers,  FZM_match_density=True)
+            '''
+            In the old increment calculation based on the excel spreadsheet from Ray,
+            the increments were calculated using the following:
+            increments = self.calc_increments(layers,  FZM_match_density=True)
+            I just set them all to one.
+            '''
             increments = [1.0 for L in layers]
         elif layers[0].increment == 'accurate':
             # Accurate increments space the mesh so the mass change between neighboring zones is less than 10%
-            increments = self.calc_increments(layers,  FZM_match_density=False)
+            # increments = self.calc_increments(layers,  FZM_match_density=False)
+            increments = self.calculate_increments(layers)
         elif not any([(L.increment == 'fast') or (L.increment == 'accurate') for L in layers]):
             increments = [float(L.increment) for L in layers]
 
+        for layer, incr in zip(layers, increments):
+            '''The increment exponentially spaces the mesh, so the widest Zone is either the first or last Zone.'''
+            first_zone_width = self.calculate_zone_width(layer, 1, incr)
+            last_zone_width = self.calculate_zone_width(layer, layer.n_mesh, incr)
+            layer.max_zone_width = max(first_zone_width, last_zone_width)
         mesh_total = 1
         thickness_total = 0.0
         for i, L in enumerate(layers):
