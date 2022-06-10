@@ -181,6 +181,7 @@ class Layer:
         self.is_material_of_interest = props['is_material_of_interest']
         self.is_shock_material_of_interest = props['is_shock_material_of_interest']
         self.increment = props['increment']
+        self.max_zone_width = np.nan  # Holds onto largest zone width created by increment
 
         if props['custom_eos'] == 'Default':
             # get the EOS number from the material selection
@@ -264,6 +265,11 @@ class InfWriter:
         elif not any([(L.increment == 'fast') or (L.increment == 'accurate') for L in layers]):
             increments = [float(L.increment) for L in layers]
 
+        for layer, incr in zip(layers, increments):
+            '''The increment exponentially spaces the mesh, so the widest Zone is either the first or last Zone.'''
+            first_zone_width = self.calculate_zone_width(layer, 1, incr)
+            last_zone_width = self.calculate_zone_width(layer, layer.n_mesh, incr)
+            layer.max_zone_width = max(first_zone_width, last_zone_width)
         mesh_total = 1
         thickness_total = 0.0
         for i, L in enumerate(layers):
