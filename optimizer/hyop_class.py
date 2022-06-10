@@ -365,15 +365,15 @@ class HyadesOptimizer:
         self.save_json()
 
         pretty_pressure = ', '.join([f'{p:.2f}' for p in self.pres])
-        print(f'Iteration: {str(self.iter_count).zfill(3)} Residual: {self.residual:.4f}\n'
+        print(f'Iteration: {str(self.iter_count).zfill(3)} Residual: {self.residual:.8f}\n'
               f'\tPressure: {pretty_pressure}')
 
         self.iter_count += 1
-        if (self.residual < 50) and (len(self.pres_time) <= 10):
-            print('RESIDUAL < 50 and RESOLUTION <= 10')
+        if (self.residual < 0.5) and (len(self.pres_time) <= 10):
+            print('RESIDUAL < 0.5 and RESOLUTION <= 10')
             raise ResolutionError('CONDITIONS MET - INCREASING RESOLUTION')
-        elif (self.residual < 15) and (len(self.pres_time) <= 20):
-            print('RESIDUAL < 20 and RESOLUTION <= 20')
+        elif (self.residual < 0.15) and (len(self.pres_time) <= 20):
+            print('RESIDUAL < 0.15 and RESOLUTION <= 20')
             raise ResolutionError('CONDITIONS MET - INCREASING RESOLUTION')
 
         return self.residual

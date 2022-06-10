@@ -131,7 +131,6 @@ def run_optimizer(run_name, restart=0, debug=0):
                                              }
                                     )
         except ResolutionError as e:
-            print("INCREASING RESOLUTION")
             print(str(e))
 
     out_fname = os.path.join(hyop.path, f'{hyop.run_name}_solution.txt')
