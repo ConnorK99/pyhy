@@ -95,7 +95,7 @@ class HyadesOptimizer:
         if (not time_of_interest) or (time_of_interest == 'None'):
             time_of_interest = (min(velocity_time), max(velocity_time))
 
-        self.exp_time = np.arange(time_of_interest[0], time_of_interest[1] + 0.1, step=0.1)
+        self.exp_time = np.arange(time_of_interest[0], time_of_interest[1], step=0.1)
         self.exp_data = f_velocity(self.exp_time)
         if self.debug >= 1:
             print(f'DEBUG: Experimental Data\n'
