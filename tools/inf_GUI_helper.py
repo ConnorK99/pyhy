@@ -1,8 +1,4 @@
-"""Several classes used by the `inf_GUI` to handle .inf creation
-
-Todo:
-    * confirm the increment calculator works well
-"""
+"""Several classes used by the `inf_GUI` to handle .inf creation"""
 import datetime
 import numpy as np
 import pandas as pd
@@ -219,11 +215,7 @@ class Layer:
             
 
 class InfWriter:
-    """Takes an iterable of Layers and formats them into an inf
-
-    Todo:
-        * Determine if my new functions calculate_increment, can be swapped in or if we should just ignore increment
-    """
+    """Takes an iterable of Layers and formats them into an inf"""
     
     def __init__(self):
         self.inf = {'DESCRIPTION': [],

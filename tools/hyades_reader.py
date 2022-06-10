@@ -110,7 +110,7 @@ class HyadesOutput:
         x = cdf.variables['R'].data.copy() * 1e4  # x is the mesh coordinates, convert cm to um
         output = cdf.variables[var].data.copy()  # output may be a 1D, 2D, or 3D array depending on the variable
         data_dimensions = cdf.variables[var].dimensions
-        # FIXME: what does sd1 do with the pressure calculations. Ray thinks it needs to be subtracted
+        # FIXME: what does sd1 do with the pressure calculations. Ray thinks it needs to be subtracted if strength used
         # if var == 'Pres':
         #     sd1 = cdf.variables['Sd1'].data.copy() * 1e-10
         #     output = output - sd1
